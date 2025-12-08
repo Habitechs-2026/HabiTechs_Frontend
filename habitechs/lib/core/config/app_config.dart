@@ -1,13 +1,24 @@
-class AppConfig {
-  // ¡¡CRÍTICO!!
-  // Esta es la URL especial para el Emulador de Android
-  // Si usas un Emulador iOS, puedes usar 'http://localhost:5100'
-  // Si usas un teléfono físico, cambia esto por la IP de tu PC en la red
-  // (ej. 'http://192.168.1.100:5100')
+import 'package:flutter/foundation.dart';
 
-  // --- CAMBIO PARA WEB (CHROME) ---
-  // Tu navegador CHROME SÍ puede ver "localhost" directamente.
-  static const String apiBaseUrl =
-      'http://localhost:5100'; // ✅ Para emulador Android
-  // static const String apiBaseUrl = 'http://192.168.1.XXX:5100';  // ✅ Para celular físico (reemplaza XXX con tu IP)
+class AppConfig {
+  static String get apiBaseUrl {
+    // ---------------------------------------------------------
+    // 1. MODO PRODUCCIÓN (Cuando subas a Netlify o generes APK final)
+    // ---------------------------------------------------------
+    if (kReleaseMode) {
+      return 'https://app-251208142957.azurewebsites.net';
+    }
+
+    // ---------------------------------------------------------
+    // 2. MODO DESARROLLO (Cuando ejecutas con F5 en tu PC)
+    // ---------------------------------------------------------
+
+    // Si estás probando en Chrome localmente
+    if (kIsWeb) {
+      return 'http://localhost:5100';
+    }
+
+    // Si estás probando en Emulador Android
+    return 'http://10.0.2.2:5100';
+  }
 }

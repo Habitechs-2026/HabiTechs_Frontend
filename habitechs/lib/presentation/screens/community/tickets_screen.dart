@@ -3,24 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:habitechs/main.dart'
-    hide kTeal, kOxfordBlue; // CORRECCIÓN: Ocultar para evitar conflicto
-import 'package:habitechs/data/services/ticket_service.dart'; // Importamos el servicio y modelo
-import 'package:habitechs/presentation/widgets/top_toast.dart'; // Importamos la notificación
-import 'package:habitechs/presentation/widgets/empty_state_widget.dart'; // Importamos el widget de vacío
+    hide kTeal, kOxfordBlue; // Ocultamos para usar definiciones locales
+import 'package:habitechs/data/models/ticket.dart';
+import 'package:habitechs/data/repositories/ticket_repository.dart';
+import 'package:habitechs/presentation/widgets/top_toast.dart'; // Asegúrate de tener este widget o usar SnackBar normal
+import 'package:habitechs/presentation/widgets/empty_state_widget.dart'; // Widget de vacío
 import 'package:iconsax/iconsax.dart';
 
 // Definición local de colores
 const Color kTeal = Colors.teal;
 const Color kOxfordBlue = Color(0xFF002147);
 
-// --- DEFINICIÓN DE PROVIDERS LOCALES ---
-final ticketServiceProvider = Provider<TicketService>((ref) => TicketService());
-
-final myTicketsProvider = FutureProvider<List<TicketModel>>((ref) async {
-  final service = ref.watch(ticketServiceProvider);
-  return service.getMyTickets();
+// Provider para recargar la lista de tickets
+final myTicketsProvider = FutureProvider.autoDispose<List<Ticket>>((ref) async {
+  final repo = ref.watch(ticketRepoProvider);
+  return repo.getMyTickets();
 });
-// ------------------------------------------------------------------
 
 class TicketsScreen extends ConsumerWidget {
   const TicketsScreen({super.key});
@@ -31,6 +29,7 @@ class TicketsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
+      // Botón flotante para CREAR ticket
       floatingActionButton: FloatingActionButton(
         backgroundColor: kOxfordBlue,
         onPressed: () => _showCreateTicketDialog(context, ref),
@@ -38,63 +37,124 @@ class TicketsScreen extends ConsumerWidget {
       ),
       body: ticketsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (err, stack) => Center(
+            child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text('Error: $err', textAlign: TextAlign.center),
+        )),
         data: (tickets) {
           if (tickets.isEmpty) {
-            // Usamos el widget de estado vacío si existe, sino un fallback
             return const EmptyStateWidget(
               icon: Iconsax.ticket,
-              title: 'No tienes tickets reportados',
-              subtitle: 'Crea uno nuevo con el botón (+)',
+              title: 'No hay tickets registrados',
+              subtitle: 'Usa el botón (+) para reportar un problema.',
             );
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: tickets.length,
-            itemBuilder: (context, index) {
-              final ticket = tickets[index];
-              Color statusColor = Colors.grey;
-              if (ticket.status == 'Open') statusColor = Colors.orange;
-              if (ticket.status == 'Closed') statusColor = Colors.green;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 2,
-                child: ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: statusColor.withOpacity(0.1),
-                    child: Icon(Iconsax.ticket, color: statusColor, size: 20),
-                  ),
-                  title: Text(ticket.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(ticket.description,
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                  trailing: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      ticket.status,
-                      style: TextStyle(
-                          color: statusColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              );
-            },
+          return RefreshIndicator(
+            onRefresh: () async => ref.refresh(myTicketsProvider),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: tickets.length,
+              itemBuilder: (context, index) {
+                final ticket = tickets[index];
+                return _buildTicketCard(ticket);
+              },
+            ),
           );
         },
       ),
     );
+  }
+
+  Widget _buildTicketCard(Ticket ticket) {
+    Color statusColor = Colors.grey;
+    String statusText = "Desconocido";
+    IconData statusIcon = Iconsax.clock;
+
+    if (ticket.status == 'Open') {
+      statusColor = Colors.orange;
+      statusText = "Abierto";
+      statusIcon = Iconsax.clock;
+    } else if (ticket.status == 'Closed') {
+      statusColor = Colors.green;
+      statusText = "Cerrado";
+      statusIcon = Iconsax.tick_circle;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    ticket.title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(statusIcon, size: 14, color: statusColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              ticket.description,
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Iconsax.user, size: 14, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    ticket.requesterEmail,
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  _formatDate(ticket.createdAt),
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day}/${date.month}/${date.year}";
   }
 
   void _showCreateTicketDialog(BuildContext context, WidgetRef ref) {
@@ -105,6 +165,7 @@ class TicketsScreen extends ConsumerWidget {
   }
 }
 
+// --- DIÁLOGO DE CREACIÓN ---
 class _CreateTicketDialog extends StatefulWidget {
   final WidgetRef ref;
   const _CreateTicketDialog({required this.ref});
@@ -128,25 +189,42 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
   }
 
   Future<void> _submit() async {
-    if (_titleController.text.isEmpty || _descController.text.isEmpty) return;
+    if (_titleController.text.trim().isEmpty ||
+        _descController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Título y descripción son obligatorios")),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
-      final service = widget.ref.read(ticketServiceProvider);
+      final repo = widget.ref.read(ticketRepoProvider);
 
-      await service.createTicket(
-          title: _titleController.text,
-          description: _descController.text,
-          image: _selectedImage);
+      await repo.createTicket(
+        _titleController.text.trim(),
+        _descController.text.trim(),
+        _selectedImage,
+      );
 
       if (mounted) {
         Navigator.pop(context); // Cerrar diálogo
 
-        showTopToast(context,
-            title: "¡Ticket Creado!",
-            body: "El administrador revisará tu reporte pronto.");
+        // Intentar usar TopToast si existe, si no, SnackBar
+        try {
+          showTopToast(context,
+              title: "¡Ticket Creado!",
+              body: "Tu reporte ha sido enviado correctamente.");
+        } catch (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text("Ticket creado exitosamente"),
+                backgroundColor: Colors.green),
+          );
+        }
 
-        widget.ref.invalidate(myTicketsProvider); // Recargar lista
+        // Recargar la lista
+        widget.ref.invalidate(myTicketsProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -163,7 +241,7 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text("Reportar Nuevo Ticket", textAlign: TextAlign.center),
+      title: const Text("Nuevo Ticket", textAlign: TextAlign.center),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -171,8 +249,10 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
-                labelText: "Asunto (ej. Foco quemado)",
-                border: UnderlineInputBorder(),
+                labelText: "Asunto (ej. Foco pasillo)",
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
             ),
             const SizedBox(height: 12),
@@ -181,14 +261,15 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
               maxLines: 3,
               decoration: const InputDecoration(
                 labelText: "Descripción del problema",
-                border: UnderlineInputBorder(),
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
               ),
             ),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 100,
+                height: 120,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
@@ -200,10 +281,11 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
                         borderRadius: BorderRadius.circular(12),
                         child: Image.file(_selectedImage!, fit: BoxFit.cover),
                       )
-                    : const Column(
+                    : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.camera_alt, color: Colors.grey),
+                        children: const [
+                          Icon(Icons.camera_alt, color: Colors.grey, size: 30),
+                          SizedBox(height: 8),
                           Text("Adjuntar foto (Opcional)",
                               style:
                                   TextStyle(fontSize: 12, color: Colors.grey)),
@@ -215,25 +297,24 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
         ),
       ),
       actions: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kTeal,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : const Text("Enviar Reporte",
-                    style: TextStyle(color: Colors.white)),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kTeal,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2))
+              : const Text("Enviar", style: TextStyle(color: Colors.white)),
         )
       ],
     );

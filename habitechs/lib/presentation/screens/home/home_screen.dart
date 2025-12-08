@@ -104,7 +104,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ];
 
     // 2. Tutorial Largo (Asistido - Manual)
-    // MEJORA: Usamos customPadding: 24 para que el borde englobe mejor los botones de abajo
     _fullTutorialSteps = [
       // --- Barra de Navegación ---
       TutorialStep(
@@ -177,18 +176,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       TutorialStep(
           key: TutorialKeys.menuSalir,
           title: 'Salir',
-          description: 'Salir de la aplicación.', // MEJORA: Texto solicitado
+          description: 'Salir de la aplicación.',
           insideMenu: true),
     ];
   }
 
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
-    // Usamos v3 para forzar que aparezca de nuevo con los cambios
     final bool hasSeenTutorial = prefs.getBool('has_seen_tutorial_v3') ?? false;
 
     if (!hasSeenTutorial) {
-      // Iniciar tutorial CORTO automáticamente
       _startTutorial(_shortTutorialSteps);
       await prefs.setBool('has_seen_tutorial_v3', true);
     }
@@ -212,11 +209,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _removeOverlay();
 
-    // Resetear estado visual
     ref.read(selectedTabProvider.notifier).state = 0;
     ref.read(floatingMenuProvider.notifier).state = false;
 
-    // Dar tiempo a que la UI se renderice
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _showStep(0);
     });
@@ -234,11 +229,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final step = _currentSteps[index];
     final isMenuOpen = ref.read(floatingMenuProvider);
 
-    // Lógica para abrir/cerrar menú automáticamente
     if (step.insideMenu && !isMenuOpen) {
       ref.read(floatingMenuProvider.notifier).state = true;
-      // MEJORA: Reducimos el delay a 150ms para evitar la sensación de "pausa" o "cortocircuito"
-      // Esto hace la transición mucho más fluida.
       Future.delayed(
           const Duration(milliseconds: 150), () => _renderOverlay(step));
       return;
@@ -246,7 +238,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     if (!step.insideMenu && isMenuOpen) {
       ref.read(floatingMenuProvider.notifier).state = false;
-      // Esperar cierre del menú
       Future.delayed(
           const Duration(milliseconds: 150), () => _renderOverlay(step));
       return;
@@ -256,7 +247,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _renderOverlay(TutorialStep step) {
-    // Buscar el widget en el árbol
     final RenderBox? renderBox =
         step.key.currentContext?.findRenderObject() as RenderBox?;
 
@@ -288,7 +278,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _endTutorial() {
     setState(() => _isTutorialActive = false);
     _removeOverlay();
-    // Cerrar menú si quedó abierto al finalizar
     if (ref.read(floatingMenuProvider)) {
       ref.read(floatingMenuProvider.notifier).state = false;
     }
@@ -301,7 +290,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Escuchar trigger manual para el Tutorial LARGO
     ref.listen(tutorialTriggerProvider, (prev, next) {
       if (next > 0) _startTutorial(_fullTutorialSteps);
     });
@@ -312,7 +300,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final List<Widget> widgetOptions = [
       const InicioBodyPremium(), // 0
-      // CORRECCIÓN: Usamos los nombres de clase correctos (Body) y const si es posible
       const AnnouncementsBody(), // 1
       const DebtBody(), // 2
       const BookingsScreen(), // 3
@@ -322,11 +309,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ];
 
     final List<BottomNavigationBarItem> navItems = [
-      // Asignamos Keys individuales a los items del BottomNavigationBar
-      // Nota: BottomNavigationBarItem no acepta Key directamente en versiones estándar de Flutter,
-      // pero el TutorialOverlay busca el RenderObject.
-      // TRUCO: Envolveremos el Icono en un Container con la Key para que el tutorial lo encuentre.
-
       BottomNavigationBarItem(
           icon: Container(
               key: TutorialKeys.navInicio, child: const Icon(Iconsax.home)),
@@ -356,9 +338,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             icon: Icon(Iconsax.slider_horizontal), label: 'Admin'),
     ];
 
-    int bottomNavIndex = selectedIndex == 5
-        ? 0
-        : (isAdmin && selectedIndex == 6 ? 5 : selectedIndex);
+    // ✅ LÓGICA DEFENSIVA CORREGIDA (Evita el crash al cambiar de rol)
+    int bottomNavIndex = 0;
+
+    if (selectedIndex == 5) {
+      bottomNavIndex = 0; // QR (índice 5) resalta Inicio (0)
+    } else if (isAdmin && selectedIndex == 6) {
+      bottomNavIndex = 5; // AdminHome (índice 6) resalta Admin tab (5)
+    } else {
+      bottomNavIndex = selectedIndex;
+    }
+
+    // Seguridad final: Si el índice calculado supera la cantidad de botones, forzar 0
+    if (bottomNavIndex >= navItems.length) {
+      bottomNavIndex = 0;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -366,12 +360,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         backgroundColor: const Color(0xFF001E35),
         elevation: 0,
         leading: IconButton(
-          key: TutorialKeys.menuBtn, // <--- KEY ASIGNADA (Menú)
+          key: TutorialKeys.menuBtn,
           icon: const Icon(Iconsax.menu_1, color: Colors.white),
           onPressed: () => ref.read(floatingMenuProvider.notifier).state = true,
         ),
         title: Text(
-          key: TutorialKeys.appBarTitle, // <--- KEY ASIGNADA (Título)
+          key: TutorialKeys.appBarTitle,
           _widgetTitles.length > selectedIndex
               ? _widgetTitles[selectedIndex]
               : 'HabiTex',
@@ -381,7 +375,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         centerTitle: true,
         actions: [
           IconButton(
-            key: TutorialKeys.logoutBtn, // <--- KEY ASIGNADA (Puerta)
+            key: TutorialKeys.logoutBtn,
             icon: const Icon(Iconsax.logout, color: Colors.white),
             onPressed: () => _showLogoutDialog(context, ref),
           )
@@ -399,13 +393,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ref.read(floatingMenuProvider.notifier).state = false,
               child: Container(color: Colors.black.withOpacity(0.6)),
             ),
-          if (isMenuOpen) const FloatingMenu(),
+          if (isMenuOpen) const FloatingMenu(), // Mantenemos FloatingMenu aquí
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        key: TutorialKeys.bottomNav, // <--- KEY ASIGNADA (Barra Inferior)
+        key: TutorialKeys.bottomNav,
         items: navItems,
-        currentIndex: bottomNavIndex,
+        currentIndex: bottomNavIndex, // ✅ Usamos el índice seguro
         onTap: (index) {
           int realIndex = (isAdmin && index == 5) ? 6 : index;
           ref.read(selectedTabProvider.notifier).state = realIndex;
@@ -433,6 +427,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
+
+              // ✅ CORRECCIÓN 2: Resetear estados antes de salir para evitar conflictos futuros
+              ref.read(selectedTabProvider.notifier).state = 0;
+              ref.read(floatingMenuProvider.notifier).state = false;
+
               ref.read(authProvider.notifier).logout();
               context.go('/login');
             },
@@ -452,22 +451,51 @@ class InicioBodyPremium extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Verificamos si es Admin para saber si mostramos el botón de "Superaccesos"
+    final isAdmin = ref.watch(isAdminProvider);
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ✅ NUEVO: BOTÓN DE SUPERACCESOS (ADMIN)
+          if (isAdmin)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SectionHeader(title: "SUPERACCESOS"),
+                const SizedBox(height: 12),
+                _PremiumCard(
+                  key: TutorialKeys
+                      .ticketsCard, // Usamos ticketsCard como genérico
+                  title: "Gestión Administrativa",
+                  subtitle: "Usuarios, Pagos, Anuncios (Todos los módulos)",
+                  icon: Iconsax.slider_horizontal,
+                  // Imagen: Oficina/Gestión (Updated)
+                  imageUrl:
+                      "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop",
+                  height: 160,
+                  isWide: true,
+                  // Navegamos directamente al panel de Admin (índice 6)
+                  onTap: () => ref.read(selectedTabProvider.notifier).state = 6,
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+
           // --- FILA SUPERIOR ---
           Row(
             children: [
               Expanded(
                 child: _PremiumCard(
-                  key: TutorialKeys.qrCard, // <--- KEY
-                  title: "Mi QR",
+                  key: TutorialKeys.qrCard,
+                  title: "Visitas",
                   icon: Iconsax.scan,
+                  // Imagen: Tecnología/QR/Escaneo (Updated)
                   imageUrl:
-                      "https://images.unsplash.com/photo-1614064641938-3e821efd8536?q=80&w=400&auto=format&fit=crop",
+                      "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop",
                   height: 140,
                   onTap: () => ref.read(selectedTabProvider.notifier).state = 5,
                 ),
@@ -475,11 +503,12 @@ class InicioBodyPremium extends ConsumerWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _PremiumCard(
-                  key: TutorialKeys.finanzasCard, // <--- KEY
+                  key: TutorialKeys.finanzasCard,
                   title: "Finanzas",
                   icon: Iconsax.wallet_money,
+                  // Imagen: Finanzas/Hogar/Ahorro (Updated)
                   imageUrl:
-                      "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=400&auto=format&fit=crop",
+                      "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=400&auto=format&fit=crop",
                   height: 140,
                   onTap: () => ref.read(selectedTabProvider.notifier).state = 2,
                 ),
@@ -494,12 +523,13 @@ class InicioBodyPremium extends ConsumerWidget {
           const SizedBox(height: 12),
 
           _PremiumCard(
-            key: TutorialKeys.anunciosCard, // <--- KEY
+            key: TutorialKeys.anunciosCard,
             title: "Anuncios",
             subtitle: "Novedades del condominio",
             icon: Iconsax.notification,
+            // Imagen: Personas/Comunidad feliz (Updated)
             imageUrl:
-                "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=800&auto=format&fit=crop",
             height: 160,
             isWide: true,
             onTap: () => ref.read(selectedTabProvider.notifier).state = 1,
@@ -513,8 +543,9 @@ class InicioBodyPremium extends ConsumerWidget {
                 child: _PremiumCard(
                   title: "Reservas",
                   icon: Iconsax.calendar_edit,
+                  // Imagen: Piscina/Amenidades (Updated)
                   imageUrl:
-                      "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=400&auto=format&fit=crop",
+                      "https://images.unsplash.com/photo-1560624052-449f5ddf0c31?q=80&w=400&auto=format&fit=crop",
                   height: 130,
                   onTap: () => ref.read(selectedTabProvider.notifier).state = 3,
                 ),
@@ -522,11 +553,11 @@ class InicioBodyPremium extends ConsumerWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _PremiumCard(
-                  key: TutorialKeys.ticketsCard, // <--- KEY
                   title: "Tickets",
                   icon: Iconsax.ticket,
+                  // Imagen: Herramientas/Mantenimiento (Updated)
                   imageUrl:
-                      "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=400&auto=format&fit=crop",
+                      "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?q=80&w=600&auto=format&fit=crop",
                   height: 130,
                   onTap: () => ref.read(selectedTabProvider.notifier).state = 4,
                 ),
@@ -544,8 +575,9 @@ class InicioBodyPremium extends ConsumerWidget {
             title: "Contactos",
             subtitle: "Directorio oficial",
             icon: Iconsax.call,
+            // Imagen: Recepción/Teléfono (Updated)
             imageUrl:
-                "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop",
             height: 130,
             isWide: true,
             onTap: () => context.push('/contacts'),
@@ -594,7 +626,7 @@ class _PremiumCard extends StatefulWidget {
   final VoidCallback onTap;
 
   const _PremiumCard({
-    super.key, // Acepta Key
+    super.key,
     required this.title,
     this.subtitle,
     required this.icon,

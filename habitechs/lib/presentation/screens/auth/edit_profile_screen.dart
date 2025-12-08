@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:habitechs/data/services/auth_service.dart';
-import 'package:habitechs/presentation/providers/auth_provider.dart'; // CORRECCIÓN: Importar para acceder a authProvider y User
-import 'package:habitechs/data/models/user.dart'; // CORRECCIÓN: Importar el modelo User
+import 'package:habitechs/presentation/providers/auth_provider.dart';
+import 'package:habitechs/data/models/user.dart';
 import 'package:iconsax/iconsax.dart';
 
 // Definición local de colores
@@ -22,7 +22,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final AuthService _authService = AuthService();
 
-  // Controladores para todos los campos
+  // Controladores
   final _nameController = TextEditingController();
   final _residentCodeController = TextEditingController();
   final _identityCardController = TextEditingController();
@@ -33,7 +33,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   File? _newPhoto;
   bool _isLoading = false;
-  UserModel? _currentUser;
+  // Usamos el modelo local del servicio para la carga inicial
+  UserModel? _currentUserData;
   bool _isLoadingData = true;
 
   @override
@@ -59,7 +60,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final user = await _authService.getMe();
       if (mounted) {
         setState(() {
-          _currentUser = user;
+          _currentUserData = user;
           // Cargar datos en los controladores
           _nameController.text = user.fullName;
           _residentCodeController.text = user.residentCode ?? '';
@@ -94,11 +95,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // 1. Enviar al Backend
+      // 1. Enviar al Backend (Incluyendo el ResidentCode)
       await _authService.updateProfile(
         fullName: _nameController.text.trim(),
         photo: _newPhoto,
-        residentCode: _residentCodeController.text.trim(),
+        residentCode: _residentCodeController.text.trim(), // ✅ Se envía aquí
         identityCard: _identityCardController.text.trim(),
         occupation: _occupationController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
@@ -106,18 +107,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         personalEmail: _emailController.text.trim(),
       );
 
-      // 2. CORRECCIÓN: Recargar el usuario y convertir UserModel a User
+      // 2. Recargar datos frescos del Backend (esto trae los roles y datos actualizados)
       final updatedUser = await _authService.getMe();
 
-      // Convertir UserModel a User (el modelo que usa auth_provider)
+      // 3. Convertir al modelo User global para actualizar el estado de la App
       final userForProvider = User(
         id: updatedUser.id,
         fullName: updatedUser.fullName,
         email: updatedUser.email,
         photoUrl: updatedUser.photoUrl,
-        roles: [], // Si UserModel no tiene roles, usa una lista vacía o adapta según tu lógica
+
+        // ✅ CORRECCIÓN CRÍTICA: Asignamos los roles que vienen del backend.
+        // Si esto se dejaba vacío, perdías el acceso de Admin.
+        roles: updatedUser.roles,
+
+        residentCode: updatedUser.residentCode,
+        identityCard: updatedUser.identityCard,
+        phoneNumber: updatedUser.phoneNumber,
+        secondaryPhone: updatedUser.secondaryPhoneNumber,
+        personalEmail: updatedUser.personalEmail,
       );
 
+      // 4. Actualizar estado global (Refresca UI inmediatamente)
       ref.read(authProvider.notifier).updateUser(userForProvider);
 
       if (mounted) {
@@ -141,7 +152,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentPhotoUrl = _currentUser?.photoUrl;
+    final currentPhotoUrl = _currentUserData?.photoUrl;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Editar Perfil")),

@@ -6,7 +6,9 @@ class Expense {
   final double amount;
   final DateTime dueDate;
   final bool isPaid;
-  final String residentEmail; // Añadido para la App Admin
+  final String residentEmail;
+  // ✅ NUEVO: Estado del último intento de pago reportado (PENDING, REJECTED, null)
+  final String? lastPaymentStatus;
 
   Expense({
     required this.id,
@@ -16,6 +18,7 @@ class Expense {
     required this.dueDate,
     required this.isPaid,
     required this.residentEmail,
+    this.lastPaymentStatus, // Permitimos null
   });
 
   factory Expense.fromJson(Map<String, dynamic> json) {
@@ -23,11 +26,12 @@ class Expense {
       id: json['id'] as String,
       title: json['title'] as String,
       description: json['description'] as String,
-      // El JSON de C# (decimal) lo leemos como double
       amount: (json['amount'] as num).toDouble(),
       dueDate: DateTime.parse(json['dueDate'] as String),
       isPaid: json['isPaid'] as bool,
       residentEmail: json['residentEmail'] as String,
+      // ✅ Mapeamos el nuevo estado de pago
+      lastPaymentStatus: json['lastPaymentStatus'] as String?,
     );
   }
 }

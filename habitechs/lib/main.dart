@@ -30,13 +30,34 @@ class MainApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
-    // Obtenemos el tema base para que GoogleFonts lo use
     final baseTextTheme = Theme.of(context).textTheme;
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       title: 'HabiTechs',
+
+      // ✅ MEJORA VISUAL PARA WEB/PC
+      // Esto centra la app y evita que se estire en pantallas anchas
+      builder: (context, child) {
+        return Center(
+          child: Container(
+            constraints:
+                const BoxConstraints(maxWidth: 600), // Ancho máximo tipo Móvil
+            decoration: const BoxDecoration(boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 20,
+                offset: Offset(0, 10),
+                spreadRadius: 5,
+              )
+            ]),
+            // ClipRect asegura que nada se salga del borde en web
+            child: ClipRect(child: child),
+          ),
+        );
+      },
+
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [
         Locale('es', 'ES'),
@@ -44,25 +65,17 @@ class MainApp extends ConsumerWidget {
       locale: const Locale('es', 'ES'),
       theme: ThemeData(
         useMaterial3: true,
-
-        // 1. Colores (Basados en tu mockup) - CORREGIDO
         colorScheme: ColorScheme.light(
-          primary: kOxfordBlue, // Azul oscuro para botones, íconos activos
-          secondary: kTeal, // Verde azulado para acentos (botones)
-          surface: kWhite, // Fondo de tarjetas (Cards) - CORREGIDO
-          onPrimary: kWhite, // Texto sobre botones azules (blanco)
-          onSecondary: kWhite, // Texto sobre botones teal (blanco)
-          onSurface: kOxfordBlue, // Texto normal (azul oscuro) - CORREGIDO
-          error: Colors.red.shade700, // Color de error
+          primary: kOxfordBlue,
+          secondary: kTeal,
+          surface: kWhite,
+          onPrimary: kWhite,
+          onSecondary: kWhite,
+          onSurface: kOxfordBlue,
+          error: Colors.red.shade700,
         ),
-
-        // 2. Fuente (INTER)
         textTheme: GoogleFonts.interTextTheme(baseTextTheme),
-
-        // 3. Fondo de Pantalla (El fondo general de la app)
         scaffoldBackgroundColor: kLightGray,
-
-        // 4. Estilos de Widgets Específicos
         appBarTheme: AppBarTheme(
           backgroundColor: kOxfordBlue,
           foregroundColor: kWhite,
@@ -71,8 +84,6 @@ class MainApp extends ConsumerWidget {
           titleTextStyle: GoogleFonts.inter(
               fontSize: 18, fontWeight: FontWeight.w600, color: kWhite),
         ),
-
-        // 5. Barra de Navegación Inferior
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: kOxfordBlue,
           selectedItemColor: kTeal,
@@ -85,8 +96,6 @@ class MainApp extends ConsumerWidget {
               GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
           unselectedLabelStyle: GoogleFonts.inter(fontSize: 12),
         ),
-
-        // 6. Card Theme - CORREGIDO
         cardTheme: CardThemeData(
           elevation: 0,
           color: kWhite,
@@ -95,8 +104,6 @@ class MainApp extends ConsumerWidget {
             side: BorderSide(color: Colors.grey.shade200),
           ),
         ),
-
-        // 7. Elevated Button Theme
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: kTeal,

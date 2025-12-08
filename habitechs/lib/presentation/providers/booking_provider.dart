@@ -1,73 +1,70 @@
+// lib/presentation/providers/booking_provider.dart
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habitechs/data/repositories/booking_repository.dart';
-// --- Estados Simples de la UI ---
 
-// 1. Guarda el "Aménity" (área) que el usuario seleccionó
-// (Por ahora, lo seteamos en "Parrillero A" por defecto)
-final selectedAmenityProvider = StateProvider<String>((ref) => 'Parrillero A');
-
-// 2. Guarda el día que el usuario está viendo en el calendario
-final focusedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
-
-// 3. Guarda el día que el usuario seleccionó (tocó)
-final selectedDayProvider = StateProvider<DateTime?>((ref) => null);
-
-// --- Proveedor de Datos (con Lógica) ---
-
-// 4. Obtiene los días OCUPADOS desde la API
-// Usamos .family para pasarle el 'amenityName'
-final bookedDatesProvider = FutureProvider.autoDispose
-    .family<List<DateTime>, String>((ref, amenityName) async {
-  // Observa el mes que el usuario está viendo
-  final focusedMonth = ref.watch(focusedDayProvider);
-  final repo = ref.watch(bookingRepoProvider);
-
-  // Llama al repositorio
-  return repo.getBookedDates(amenityName, focusedMonth);
+/// Área común seleccionada
+final selectedAmenityProvider = StateProvider.autoDispose<String>((ref) {
+  return 'Parrillero A';
 });
 
-// --- Proveedor de Acciones (para el botón "Reservar") ---
+/// Día seleccionado en el calendario
+final selectedDayProvider = StateProvider.autoDispose<DateTime?>((ref) {
+  return null;
+});
 
-// 5. El "Cerebro" que maneja la ACCIÓN de reservar
-// (Maneja el estado de carga/error del *botón*)
+/// Día enfocado en el calendario
+final focusedDayProvider = StateProvider.autoDispose<DateTime>((ref) {
+  return DateTime.now();
+});
+
+/// Fechas reservadas por área (para pintar puntos en el calendario)
+final bookedDatesProvider = FutureProvider.family
+    .autoDispose<List<DateTime>, String>((ref, amenity) async {
+  final repo = ref.read(bookingRepositoryProvider);
+  // ✅ CORRECCIÓN: La llamada al repo ahora solo requiere el amenity
+  return repo.getBookedDates(amenity);
+});
+
+/// Acción de crear reserva
 final bookingActionProvider =
-    StateNotifierProvider<BookingActionNotifier, AsyncValue<void>>((ref) {
+    StateNotifierProvider.autoDispose<BookingActionNotifier, AsyncValue<void>>(
+        (ref) {
   return BookingActionNotifier(ref);
 });
 
 class BookingActionNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
 
-  BookingActionNotifier(this._ref)
-      : super(const AsyncData(null)); // Estado inicial = "OK"
+  BookingActionNotifier(this._ref) : super(const AsyncData(null));
 
-  Future<void> createBooking() async {
-    // 1. Obtener los datos actuales de los otros providers
-    final amenity = _ref.read(selectedAmenityProvider);
-    final day = _ref.read(selectedDayProvider);
+  /// [startTime] y [endTime] vienen en formato "HH:mm"
+  Future<void> createBooking(String startTime, String endTime) async {
+    final amenity = _ref.read(selectedAmenityProvider.notifier).state;
+    final date = _ref.read(selectedDayProvider.notifier).state;
 
-    if (day == null) {
-      // No hacer nada si no se seleccionó un día
+    if (date == null) {
       return;
     }
 
-    // 2. Poner el estado en "Cargando"
     state = const AsyncLoading();
 
-    // 3. Llamar al repositorio (en un try/catch)
     try {
-      final repo = _ref.read(bookingRepoProvider);
-      await repo.createBooking(amenity, day);
+      final repo = _ref.read(bookingRepositoryProvider);
 
-      // 4. ÉXITO: Volver al estado "OK"
-      state = const AsyncData(null);
+      await repo.createBooking(
+        amenity: amenity,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+      );
 
-      // 5. Refrescar la lista de días ocupados (para que muestre la nueva reserva)
+      // ✅ ÉXITO: Invalidar el provider de fechas reservadas para forzar la actualización del calendario
       _ref.invalidate(bookedDatesProvider(amenity));
-      // También refrescamos la lista de "Mis Reservas" (que haremos luego)
-      // _ref.invalidate(myBookingsProvider);
+
+      // Revertir al estado inicial de éxito
+      state = const AsyncData(null);
     } catch (e, stack) {
-      // 5. ERROR: Guardar el error
       state = AsyncError(e, stack);
     }
   }

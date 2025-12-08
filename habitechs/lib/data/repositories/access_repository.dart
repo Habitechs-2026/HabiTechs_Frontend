@@ -6,13 +6,18 @@ class AccessRepository {
   final Dio _dio;
   AccessRepository(this._dio);
 
-  // --- MÉTODO EXISTENTE (Para Residente) ---
-  // Llama a POST /api/access/visit/generate-qr
-  Future<String> generateQrCode(String visitorName) async {
+  // --- Residente: Generar QR ---
+  Future<String> generateQrCode(String visitorName, String identityCard,
+      DateTime scheduledAt, DateTime scheduledExit) async {
     try {
       final response = await _dio.post(
         '/api/access/visit/generate-qr',
-        data: {'visitorName': visitorName},
+        data: {
+          'visitorName': visitorName,
+          'identityCard': identityCard,
+          'scheduledAt': scheduledAt.toIso8601String(),
+          'scheduledExit': scheduledExit.toIso8601String(),
+        },
       );
       if (response.statusCode == 200) {
         return response.data['qrCode'] as String;
@@ -23,48 +28,55 @@ class AccessRepository {
     }
   }
 
-  // --- MÉTODO EXISTENTE (Para Guardia) ---
-  // Llama a POST /api/access/visit/check-in
+  // --- Guardia: Check-In Simple ---
   Future<String> checkInVisit(String qrToken) async {
     try {
       final response = await _dio.post(
-        '/api/access/visit/check-in', // El endpoint del Guardia
-        data: {'qrCodeToken': qrToken},
+        '/api/access/visit/check-in',
+        data: {'qrCode': qrToken},
       );
-      if (response.statusCode == 200) {
-        // Devuelve el mensaje de éxito (ej. "Check-in de 'Juan' exitoso")
-        return response.data['message'] as String;
-      }
-      throw Exception('Error al registrar visita');
+      return response.data['message'] as String;
     } on DioException catch (e) {
-      // Devuelve el mensaje de error (ej. "QR inválido")
       throw Exception(e.response?.data['message'] ?? 'Error de red');
     }
   }
 
-  // --- ¡ESTE ES EL MÉTODO QUE FALTABA! (Para Guardia) ---
-  // Llama a POST /api/parcels/register
+  // --- Guardia: Registrar Paquete ---
   Future<void> registerParcel(String residentEmail, String description) async {
     try {
-      final response = await _dio.post(
-        '/api/parcels/register',
+      await _dio.post(
+        '/api/parcel/register',
         data: {
           'residentEmail': residentEmail,
           'description': description,
         },
       );
-      // El backend devuelve 201 Created, no necesitamos devolver nada
-      if (response.statusCode != 201) {
-        throw Exception('Error al registrar paquete');
-      }
     } on DioException catch (e) {
-      // Manejar el error de Dev 1 (ej. "Residente no encontrado")
       throw Exception(e.response?.data['message'] ?? 'Error de red');
+    }
+  }
+
+  // --- ¡MÉTODO QUE FALTABA! ---
+  Future<String> processVisitAccess({
+    required Map<String, dynamic> qrDataMap,
+    required bool isApproved,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/access/visit/process-access',
+        data: {
+          'qrData': qrDataMap,
+          'isApproved': isApproved,
+        },
+      );
+      return response.data['message'] as String;
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data['message'] ?? 'Error al procesar acceso');
     }
   }
 }
 
-// Provider de Riverpod (no cambia)
 final accessRepoProvider = Provider<AccessRepository>((ref) {
   final dio = ref.watch(dioProvider);
   return AccessRepository(dio);
