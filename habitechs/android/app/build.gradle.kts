@@ -22,7 +22,7 @@ android {
         applicationId = "com.example.habitechs"
         
         // ✅✅✅ GOOGLE MAPS REQUIERE minSdk 21 O SUPERIOR ✅✅✅
-        minSdk = 21  // ✅ CAMBIADO DE flutter.minSdkVersion A 21
+        minSdk = flutter.minSdkVersion  // ✅ CAMBIADO DE flutter.minSdkVersion A 21
         
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

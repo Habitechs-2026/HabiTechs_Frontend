@@ -1,4 +1,3 @@
-// Modelo para entender el JSON de GET /api/tickets/my-tickets
 class Ticket {
   final String id;
   final String title;
@@ -8,6 +7,13 @@ class Ticket {
   final DateTime? closedAt;
   final String requesterEmail;
 
+  // --- NUEVOS CAMPOS ---
+  final String? photoUrl; // Foto del residente
+  final String? closingPhotoUrl; // Foto del admin/guardia
+  final String? createdBy; // Nombre de quien creó
+  final String? closedBy; // Nombre de quien cerró
+  // --------------------
+
   Ticket({
     required this.id,
     required this.title,
@@ -16,19 +22,28 @@ class Ticket {
     required this.createdAt,
     this.closedAt,
     required this.requesterEmail,
+    this.photoUrl,
+    this.closingPhotoUrl,
+    this.createdBy,
+    this.closedBy,
   });
 
   factory Ticket.fromJson(Map<String, dynamic> json) {
     return Ticket(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      status: json['status'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      closedAt: json['closedAt'] != null
-          ? DateTime.parse(json['closedAt'] as String)
-          : null,
-      requesterEmail: json['requesterEmail'] as String,
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      status: json['status'] ?? 'Abierto',
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      closedAt:
+          json['closedAt'] != null ? DateTime.tryParse(json['closedAt']) : null,
+      requesterEmail: json['requesterEmail'] ?? '',
+
+      // Mapeo seguro
+      photoUrl: json['photoUrl'],
+      closingPhotoUrl: json['closingPhotoUrl'],
+      createdBy: json['createdBy'],
+      closedBy: json['closedBy'],
     );
   }
 }

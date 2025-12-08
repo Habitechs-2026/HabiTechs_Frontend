@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:habitechs/presentation/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart'; // ✅ Agregado para navegar al chat
 import 'package:lottie/lottie.dart';
+import 'package:habitechs/presentation/providers/auth_provider.dart';
+import 'package:iconsax/iconsax.dart'; // ✅ Agregado para el ícono
 
-// 1. Usamos ConsumerStatefulWidget para manejar los text controllers
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -17,6 +18,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _errorMessage;
   bool _isLoading = false;
 
+  // Variable para controlar si se ve la contraseña
+  bool _isPasswordVisible = false;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -24,55 +28,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  // --- El Método de Login (Acto 3) ---
+  // LOGIN REAL
   Future<void> _login() async {
-    // 1. Estado: Cargando
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    // 2. La Llamada (al Cerebro)
-    final error = await ref.read(authProvider.notifier).login(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    // 3. Estados: Éxito o Error
-    if (mounted) {
-      // Asegurarse que la pantalla sigue "viva"
+    if (email.isEmpty || password.isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = error; // Será null si fue exitoso
+        _errorMessage = "Por favor ingresa email y contraseña.";
       });
+      return;
     }
+
+    // Llamada al Backend
+    final errorString = await ref.read(authProvider.notifier).login(
+          email,
+          password,
+        );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      if (errorString != null) {
+        _errorMessage = errorString;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ✅ NUEVO: Botón Flotante del Asistente IA (Solo aparece aquí)
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          // Navegar al chatbot sin necesidad de login
+          context.push('/chatbot');
+        },
+        backgroundColor:
+            Colors.teal, // Color diferente al de Ingresar para destacar
+        icon: const Icon(Iconsax.message_question, color: Colors.white),
+        label: const Text(
+          "¿Necesitas ayuda?",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // --- RECURSO GRÁFICO (Como pediste) ---
+              // Animación Lottie (Edificio)
               SizedBox(
                 width: 250,
                 height: 250,
-                // (Asume que descargaste una anim de "casa" o "login")
                 child: Lottie.asset('assets/animations/login_building.json'),
               ),
               const SizedBox(height: 20),
 
+              // --- TÍTULO ACTUALIZADO ---
               Text(
-                'Bienvenido a HabiTechs',
-                style: Theme.of(context).textTheme.headlineMedium,
+                '¡Bienvenido a HabiTex!',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF002147), // Azul Oxford
+                    ),
               ),
               const SizedBox(height: 30),
 
-              // --- Formulario ---
+              // Campo Email
               TextField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -83,19 +116,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 20),
+
+              // Campo Contraseña con "Ojito"
               TextField(
                 controller: _passwordController,
                 decoration: InputDecoration(
                   labelText: 'Contraseña',
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.lock),
-                  errorText: _errorMessage, // ¡Muestra el error de la API aquí!
+                  errorText: _errorMessage,
+                  // --- AQUÍ ESTÁ EL OJITO ---
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                // Esto controla si se oculta o no el texto
+                obscureText: !_isPasswordVisible,
               ),
               const SizedBox(height: 30),
 
-              // --- Botón de Login (con estado de carga) ---
+              // Botón de Ingreso
               _isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(

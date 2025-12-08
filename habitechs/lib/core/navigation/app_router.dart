@@ -3,154 +3,129 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habitechs/data/storage/secure_storage_service.dart';
 import 'package:habitechs/presentation/providers/auth_provider.dart';
-import 'package:habitechs/presentation/screens/auth/edit_profile_screen.dart'; // Importar
-// --- Importar TODAS las pantallas ---
-import 'package:habitechs/presentation/screens/admin/admin_home_screen.dart';
-// Auth & Splash
+
+// Pantallas
+import 'package:habitechs/presentation/screens/auth/edit_profile_screen.dart';
 import 'package:habitechs/presentation/screens/auth/login_screen.dart';
 import 'package:habitechs/presentation/screens/splash/splash_screen.dart';
-
-// Residente
 import 'package:habitechs/presentation/screens/home/home_screen.dart';
-// import 'package:habitechs/presentation/screens/finance/debt_screen.dart';
-
-// Guardia
 import 'package:habitechs/presentation/screens/guard/guard_home_screen.dart';
 import 'package:habitechs/presentation/screens/guard/scan_qr_screen.dart';
 import 'package:habitechs/presentation/screens/guard/register_parcel_screen.dart';
-
 // Admin
 import 'package:habitechs/presentation/screens/admin/admin_home_screen.dart';
 import 'package:habitechs/presentation/screens/admin/manage_tickets_screen.dart';
 import 'package:habitechs/presentation/screens/admin/create_announcement_screen.dart';
 import 'package:habitechs/presentation/screens/admin/create_expense_screen.dart';
-import 'package:habitechs/presentation/screens/admin/manage_roles_screen.dart';
+import 'package:habitechs/presentation/screens/admin/manage_users_screen.dart';
 import 'package:habitechs/presentation/screens/admin/manage_expenses_screen.dart';
-
-// Comunes (Contactos y Chat)
+import 'package:habitechs/presentation/screens/admin/validate_payments_screen.dart';
+// Comunes
 import 'package:habitechs/presentation/screens/contacts/contacts_screen.dart';
 import 'package:habitechs/presentation/screens/community/chat_screen.dart';
+// Chatbot
+import 'package:habitechs/presentation/screens/community/chatbot_screen.dart'; // Importación correcta
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
   final storage = ref.read(secureStorageProvider);
 
   return GoRouter(
+    initialLocation: '/splash',
     redirect: (BuildContext context, GoRouterState state) async {
       final location = state.matchedLocation;
 
-      // Splash mientras carga
-      if (authState == AuthStatus.unknown) {
-        return '/splash';
-      }
+      if (authState == AuthStatus.unknown) return '/splash';
 
-      // No autenticado -> Login
+      // --- ZONA PÚBLICA (Sin Login) ---
       if (authState == AuthStatus.unauthenticated) {
-        return location == '/login' ? null : '/login';
+        if (location == '/login' || location == '/chatbot') {
+          return null;
+        }
+        return '/login';
       }
 
-      // Autenticado -> Redirigir según Rol
+      // --- ZONA PRIVADA (Con Login) ---
       if (authState == AuthStatus.authenticated) {
-        final role = await storage.readRole();
-
-        // Solo redirige si intenta ir a login o splash estando ya logueado
-        if (location == '/login' || location == '/splash') {
+        if (location == '/login' ||
+            location == '/splash' ||
+            location == '/chatbot') {
+          final role = await storage.readRole();
           if (role == 'Guardia') return '/guard/home';
-          if (role == 'Admin') return '/admin/home';
-          return '/home'; // Residente por defecto
+          return '/home';
         }
       }
       return null;
     },
     routes: [
-      // --- Rutas Base ---
       GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/admin-panel',
-        builder: (context, state) => const AdminHomeScreen(),
-      ),
-      // --- Rutas de Residente ---
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeScreen(),
-      ),
-      // GoRoute(
-      //   path: '/debt',
-      //   builder: (context, state) => const DebtScreen(),
-      // ),
+          path: '/splash', builder: (context, state) => const SplashScreen()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
 
-      // --- Rutas de Guardia ---
+      // ✅ CORRECCIÓN AQUÍ: Quitamos el 'Text' y ponemos la pantalla real
       GoRoute(
-        path: '/edit-profile',
-        builder: (context, state) => const EditProfileScreen(),
-      ),
-      GoRoute(
-        path: '/guard/home',
-        builder: (context, state) => const GuardHomeScreen(),
-      ),
-      GoRoute(
-        path: '/guard/scan-qr',
-        builder: (context, state) => const ScanQrScreen(),
-      ),
-      GoRoute(
-        path: '/guard/register-parcel',
-        builder: (context, state) => const RegisterParcelScreen(),
+        path: '/chatbot',
+        builder: (context, state) => const HabiTexChatbot(),
       ),
 
-      // --- Rutas de Admin ---
+      // Home Compartido
+      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(
-        path: '/admin/home',
-        builder: (context, state) => const AdminHomeScreen(),
-      ),
-      GoRoute(
-        path: '/admin/manage-tickets',
-        builder: (context, state) => const ManageTicketsScreen(),
-      ),
-      GoRoute(
-        path: '/admin/create-announcement',
-        builder: (context, state) => const CreateAnnouncementScreen(),
-      ),
-      GoRoute(
-        path: '/admin/create-expense',
-        builder: (context, state) => const CreateExpenseScreen(),
-      ),
-      GoRoute(
-        path: '/admin/manage-roles',
-        builder: (context, state) => const ManageRolesScreen(),
-      ),
-      GoRoute(
-        path: '/admin/manage-expenses',
-        builder: (context, state) => const ManageExpensesScreen(),
-      ),
+          path: '/edit-profile',
+          builder: (context, state) => const EditProfileScreen()),
 
-      // --- RUTAS COMUNES ---
+      // Rutas Guardia
+      GoRoute(
+          path: '/guard/home',
+          builder: (context, state) => const GuardHomeScreen()),
+      GoRoute(
+          path: '/guard/scan-qr',
+          builder: (context, state) => const ScanQrScreen()),
+      GoRoute(
+          path: '/guard/register-parcel',
+          builder: (context, state) => const RegisterParcelScreen()),
 
-      // 1. Contactos (ACTUALIZADO PARA RECIBIR FILTRO)
+      // Rutas Admin
+      GoRoute(
+          path: '/admin/home',
+          builder: (context, state) => const AdminHomeScreen()),
+      GoRoute(
+          path: '/admin/manage-tickets',
+          builder: (context, state) => const ManageTicketsScreen()),
+      GoRoute(
+          path: '/admin/create-announcement',
+          builder: (context, state) => const CreateAnnouncementScreen()),
+
+      // Rutas Finanzas
+      GoRoute(
+          path: '/admin/create-expense',
+          builder: (context, state) => const CreateExpenseScreen()),
+
+      GoRoute(
+          path: '/admin/validate-payments',
+          name: 'validate-payments',
+          builder: (context, state) => const ValidatePaymentsScreen()),
+
+      GoRoute(
+          path: '/admin/manage-users',
+          name: 'manage-users',
+          builder: (context, state) => const ManageUsersScreen()),
+
+      GoRoute(
+          path: '/admin/manage-expenses',
+          builder: (context, state) => const ManageExpensesScreen()),
+
+      // Comunes
       GoRoute(
         path: '/contacts',
-        name: 'contacts',
         builder: (context, state) {
-          // Extraemos el filtro del mapa "extra" (ej: {'roleFilter': 'Administrador'})
           final extra = state.extra as Map<String, dynamic>?;
-          final filter = extra?['roleFilter'] as String?;
-
-          return ContactsScreen(roleFilter: filter);
+          return ContactsScreen(roleFilter: extra?['roleFilter'] as String?);
         },
       ),
-
-      // 2. Chat
       GoRoute(
         path: '/chat',
-        name: 'chat',
         builder: (context, state) {
-          // Recibimos ID y Nombre del usuario destino
           final extra = state.extra as Map<String, String>? ?? {};
           return ChatScreen(
             otherUserId: extra['userId'] ?? '',
@@ -159,6 +134,5 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
     ],
-    initialLocation: '/splash',
   );
 });

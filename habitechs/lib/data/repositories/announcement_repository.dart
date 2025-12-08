@@ -1,6 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// (Asegúrate de que el nombre de tu app 'habitechs' sea correcto)
 import 'package:habitechs/data/models/announcement.dart';
 import 'package:habitechs/data/services/api_service.dart';
 
@@ -9,11 +9,10 @@ class AnnouncementRepository {
 
   AnnouncementRepository(this._dio);
 
-  // --- MÉTODO EXISTENTE (Para Residente) ---
+  // Obtener Anuncios
   Future<List<Announcement>> getAnnouncements() async {
     try {
-      final response = await _dio.get('/api/announcements');
-
+      final response = await _dio.get('/api/Announcements');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => Announcement.fromJson(json)).toList();
@@ -25,26 +24,51 @@ class AnnouncementRepository {
     }
   }
 
-  // --- ¡MÉTODO NUEVO! (Para Admin) ---
-  // Llama a POST /api/announcements (Admin)
-  Future<void> createAnnouncement(String title, String content) async {
+  // Crear Anuncio
+  Future<void> createAnnouncement(
+      String title, String content, File? image) async {
     try {
-      final response = await _dio.post(
-        '/api/announcements',
-        data: {'title': title, 'content': content},
-      );
-      // Dev 1 devuelve 201 Created
-      if (response.statusCode != 201) {
-        throw Exception('Error al crear anuncio');
+      final formData = FormData.fromMap({
+        'Title': title,
+        'Content': content,
+      });
+
+      if (image != null) {
+        String fileName = image.path.split('/').last;
+        formData.files.add(MapEntry(
+          'Image',
+          await MultipartFile.fromFile(image.path, filename: fileName),
+        ));
+      }
+
+      final response = await _dio.post('/api/Announcements', data: formData);
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(
+            'Error al crear anuncio. Código: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      // Captura el error de Dev 1 (ej. "Título es requerido")
-      throw Exception(e.response?.data['message'] ?? 'Error de red');
+      final msg = e.response?.data is Map
+          ? e.response?.data['message']
+          : 'Error de red al crear anuncio';
+      throw Exception(msg);
+    }
+  }
+
+  // --- ✅ NUEVO: ELIMINAR ANUNCIO ---
+  Future<void> deleteAnnouncement(String id) async {
+    try {
+      final response = await _dio.delete('/api/Announcements/$id');
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al eliminar anuncio');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data['message'] ?? 'Error de red al eliminar');
     }
   }
 }
 
-// Proveedor de Riverpod para este repositorio (no cambia)
 final announcementRepoProvider = Provider<AnnouncementRepository>((ref) {
   final dio = ref.watch(dioProvider);
   return AnnouncementRepository(dio);

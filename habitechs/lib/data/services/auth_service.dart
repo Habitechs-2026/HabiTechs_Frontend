@@ -3,13 +3,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:habitechs/core/config/app_config.dart';
 
-// Definición del modelo de usuario para usar en la app
+// Modelo de Usuario interno del servicio
 class UserModel {
   final String id;
   final String fullName;
   final String email;
   final String? photoUrl;
-  // Nuevos campos de información del residente
+  final List<String> roles; // <--- AGREGADO
+
   final String? residentCode;
   final String? identityCard;
   final String? occupation;
@@ -22,6 +23,7 @@ class UserModel {
     required this.fullName,
     required this.email,
     this.photoUrl,
+    required this.roles, // <--- AGREGADO
     this.residentCode,
     this.identityCard,
     this.occupation,
@@ -36,12 +38,14 @@ class UserModel {
       fullName: json['fullName'] ?? '',
       email: json['email'] ?? '',
       photoUrl: json['photoUrl'],
-      // Mapeo de nuevos campos (asegúrate que el backend devuelva estos nombres)
+      // ✅ RECUPERAR ROLES DEL BACKEND
+      roles: (json['roles'] as List?)?.map((e) => e.toString()).toList() ?? [],
+
       residentCode: json['residentCode'],
       identityCard: json['identityCard'],
       occupation: json['occupation'],
       phoneNumber: json['phoneNumber'],
-      secondaryPhoneNumber: json['secondaryPhoneNumber'],
+      secondaryPhoneNumber: json['secondaryPhone'],
       personalEmail: json['personalEmail'],
     );
   }
@@ -52,7 +56,6 @@ class AuthService {
   final _storage = const FlutterSecureStorage();
   final String _baseUrl = AppConfig.apiBaseUrl;
 
-  // OBTENER DATOS DEL USUARIO ACTUAL
   Future<UserModel> getMe() async {
     try {
       final token = await _storage.read(key: 'jwt_token');
@@ -66,7 +69,6 @@ class AuthService {
     }
   }
 
-  // ACTUALIZAR PERFIL (Nombre, Foto y Datos de Residente)
   Future<void> updateProfile({
     required String fullName,
     File? photo,
@@ -80,14 +82,13 @@ class AuthService {
     try {
       final token = await _storage.read(key: 'jwt_token');
 
-      // Construimos el FormData con todos los campos
       final Map<String, dynamic> dataMap = {
         'FullName': fullName,
-        'ResidentCode': residentCode,
+        'ResidentCode': residentCode, // <--- ENVIAR AL BACKEND
         'IdentityCard': identityCard,
         'Occupation': occupation,
         'PhoneNumber': phoneNumber,
-        'SecondaryPhoneNumber': secondaryPhoneNumber,
+        'SecondaryPhone': secondaryPhoneNumber,
         'PersonalEmail': personalEmail,
       };
 
@@ -109,9 +110,8 @@ class AuthService {
         }),
       );
     } catch (e) {
-      // Manejo de errores simple
       if (e is DioException && e.response != null) {
-        throw Exception(e.response?.data['message'] ?? 'Error al actualizar');
+        throw Exception(e.response?.data.toString() ?? 'Error al actualizar');
       }
       throw Exception('Error de conexión: $e');
     }

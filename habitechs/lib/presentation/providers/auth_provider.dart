@@ -2,26 +2,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:habitechs/data/services/api_service.dart';
 import 'package:habitechs/data/storage/secure_storage_service.dart';
-import 'package:habitechs/data/models/user.dart'; // Tu modelo User
+import 'package:habitechs/data/models/user.dart';
 
-// --- Estado de Autenticación ---
-enum AuthStatus {
-  unknown,
-  authenticated,
-  unauthenticated,
-}
+// Provider que mantiene al usuario actualizado en tiempo real
+final userProvider = StateProvider<User?>((ref) => null);
 
-// --- Notifier de Autenticación ---
+enum AuthStatus { unknown, authenticated, unauthenticated }
+
+final authProvider = StateNotifierProvider<AuthNotifier, AuthStatus>((ref) {
+  final dio = ref.watch(dioProvider);
+  final storage = ref.watch(secureStorageProvider);
+  return AuthNotifier(dio, storage, ref);
+});
+
 class AuthNotifier extends StateNotifier<AuthStatus> {
   final Dio _dio;
   final SecureStorageService _storage;
-  User? _currentUser; // Guardamos el usuario actual
+  final Ref _ref;
 
-  AuthNotifier(this._dio, this._storage) : super(AuthStatus.unknown) {
+  AuthNotifier(this._dio, this._storage, this._ref)
+      : super(AuthStatus.unknown) {
     _checkAuthStatus();
   }
-
-  User? get currentUser => _currentUser;
 
   Future<void> _checkAuthStatus() async {
     final token = await _storage.readToken();
@@ -36,7 +38,8 @@ class AuthNotifier extends StateNotifier<AuthStatus> {
     try {
       final response = await _dio.get('/api/Users/me');
       if (response.statusCode == 200) {
-        _currentUser = User.fromJson(response.data);
+        final user = User.fromJson(response.data);
+        _ref.read(userProvider.notifier).state = user; // Actualizar usuario
         state = AuthStatus.authenticated;
       }
     } catch (e) {
@@ -52,57 +55,45 @@ class AuthNotifier extends StateNotifier<AuthStatus> {
       );
 
       if (response.statusCode == 200) {
-        final token = response.data['token'] as String;
-        final roles = (response.data['roles'] as List).cast<String>();
+        final data = response.data;
+        final token = data['token'] as String;
+        // Guardamos roles también localmente por si acaso
+        final roles = (data['roles'] as List).cast<String>();
 
         await _storage.saveToken(token);
         await _storage.saveRoles(roles);
 
-        // Si el login devuelve datos del usuario
-        if (response.data['user'] != null) {
-          _currentUser = User.fromJson(response.data['user']);
-        } else {
-          await _loadUserData(); // Cargarlo desde /me
-        }
-
+        await _loadUserData(); // Cargar perfil completo (con roles)
         state = AuthStatus.authenticated;
         return null;
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        return "Email o contraseña inválidos";
-      }
-      return "Error de red. Intenta de nuevo.";
+      if (e.response?.statusCode == 401) return "Credenciales incorrectas.";
+      return "Error de conexión.";
+    } catch (e) {
+      return "Error desconocido: $e";
     }
-    return "Error desconocido.";
+    return "Error desconocido";
   }
 
   Future<void> logout() async {
-    await _storage.deleteToken();
-    _currentUser = null;
+    await _storage.clear();
+    _ref.read(userProvider.notifier).state = null;
     state = AuthStatus.unauthenticated;
   }
 
   void updateUser(User user) {
-    _currentUser = user;
-    // Forzar actualización de estado (opcional)
-    state = AuthStatus.authenticated;
+    _ref.read(userProvider.notifier).state = user;
   }
 }
 
-// --- Provider Principal ---
-final authProvider = StateNotifierProvider<AuthNotifier, AuthStatus>((ref) {
-  final dio = ref.watch(dioProvider);
-  final storage = ref.watch(secureStorageProvider);
-  return AuthNotifier(dio, storage);
-});
+// Helpers
+final currentUserProvider = Provider<User?>((ref) => ref.watch(userProvider));
 
-// --- Providers Auxiliares (Provider simple, NO FutureProvider) ---
-final currentUserProvider = Provider<User?>((ref) {
-  return ref.watch(authProvider.notifier).currentUser;
-});
-
+// ✅ LOGICA DE ADMIN VERIFICADA
 final isAdminProvider = Provider<bool>((ref) {
-  final user = ref.watch(currentUserProvider);
-  return user?.roles.contains('Administrador') ?? false;
+  final user = ref.watch(userProvider);
+  if (user == null) return false;
+  // Verifica si tiene rol "Admin" o "Administrador"
+  return user.roles.contains('Admin') || user.roles.contains('Administrador');
 });
