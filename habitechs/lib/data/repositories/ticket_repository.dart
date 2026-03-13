@@ -12,7 +12,7 @@ class TicketRepository {
   // (Si eres Admin/Guardia el backend te devolverá TODOS, si eres Residente solo los TUYOS)
   Future<List<Ticket>> getMyTickets() async {
     try {
-      final response = await _dio.get('/api/Tickets');
+      final response = await _dio.get('/api/Tickets/my-tickets');
       final List<dynamic> data = response.data;
       return data.map((json) => Ticket.fromJson(json)).toList();
     } on DioException catch (e) {
