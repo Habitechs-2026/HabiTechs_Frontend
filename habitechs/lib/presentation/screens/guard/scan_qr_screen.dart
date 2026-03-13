@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habitechs/presentation/providers/scan_provider.dart';
 import 'package:habitechs/presentation/screens/guard/validate_visit_screen.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:lottie/lottie.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 

@@ -98,8 +98,9 @@ class _QrScreenState extends ConsumerState<QrScreen> {
     }
 
     final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null)
+    if (currentUser == null) {
       return _showError('No se encontró info del residente');
+    }
 
     final Map<String, dynamic> qrDataMap = {
       'type': 'visit_pass',

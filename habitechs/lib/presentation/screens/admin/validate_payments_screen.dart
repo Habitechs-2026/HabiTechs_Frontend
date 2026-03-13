@@ -218,7 +218,7 @@ class _ApprovalCard extends ConsumerWidget {
                               .read(rejectPaymentActionProvider.notifier)
                               .execute({'paymentId': approval.paymentId});
                         },
-                  child: Text('Rechazar', style: TextStyle(color: kRed)),
+                  child: const Text('Rechazar', style: TextStyle(color: kRed)),
                 ),
               ],
             )

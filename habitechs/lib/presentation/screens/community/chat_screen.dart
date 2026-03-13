@@ -10,8 +10,7 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String otherUserName; // Nombre para mostrar en el AppBar
 
   const ChatScreen(
-      {Key? key, required this.otherUserId, required this.otherUserName})
-      : super(key: key);
+      {super.key, required this.otherUserId, required this.otherUserName});
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();

@@ -116,7 +116,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
         children: [
           // --- 1. Selector de Área (Amenity) ---
           DropdownButtonFormField<String>(
-            value: selectedAmenity,
+            initialValue: selectedAmenity,
             decoration: const InputDecoration(
               labelText: 'Área Común',
               border: OutlineInputBorder(),
@@ -154,7 +154,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
               },
               onDaySelected: (newSelectedDay, newFocusedDay) {
                 if (newSelectedDay.isBefore(
-                    DateTime.now().subtract(const Duration(hours: 1)))) return;
+                    DateTime.now().subtract(const Duration(hours: 1)))) {
+                  return;
+                }
 
                 ref.read(selectedDayProvider.notifier).state = newSelectedDay;
                 ref.read(focusedDayProvider.notifier).state = newFocusedDay;

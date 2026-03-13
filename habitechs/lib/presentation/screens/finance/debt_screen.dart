@@ -59,8 +59,8 @@ class DebtBody extends ConsumerWidget {
         return AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Iconsax.bank, color: kTeal),
               SizedBox(width: 10),
               Text("Datos Bancarios",
@@ -86,9 +86,9 @@ class DebtBody extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       _BankInfoRow(label: "Banco:", value: "BNB"),
                       Divider(),
                       _BankInfoRow(

@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:habitechs/main.dart'
-    hide kTeal, kOxfordBlue; // Ocultamos para evitar conflictos
+// Ocultamos para evitar conflictos
 import 'package:habitechs/presentation/providers/auth_provider.dart';
 import 'package:habitechs/presentation/widgets/floating_menu.dart';
 import 'package:habitechs/presentation/widgets/tutorial_overlay.dart'; // Widget Overlay
 import 'package:habitechs/core/utils/tutorial_keys.dart'; // Keys Globales
-import 'package:habitechs/data/storage/secure_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Para guardar estado "visto"
-import 'package:habitechs/data/services/auth_service.dart'; // Importar AuthService
+// Importar AuthService
 
 // Pantallas
 import 'package:habitechs/presentation/screens/community/announcements_screen.dart';
@@ -19,8 +17,7 @@ import 'package:habitechs/presentation/screens/community/tickets_screen.dart'
     hide kTeal, kOxfordBlue; // CORRECCIÓN: Ocultar colores exportados
 import 'package:habitechs/presentation/screens/access/qr_screen.dart';
 import 'package:habitechs/presentation/screens/admin/admin_home_screen.dart';
-import 'package:habitechs/presentation/screens/contacts/contacts_screen.dart'
-    hide kTeal, kOxfordBlue; // CORRECCIÓN: Ocultar colores exportados
+// CORRECCIÓN: Ocultar colores exportados
 import 'package:iconsax/iconsax.dart';
 
 // Definición local de colores

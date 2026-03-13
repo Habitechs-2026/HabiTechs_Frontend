@@ -63,8 +63,9 @@ class TutorialOverlay extends StatelessWidget {
 
     // Ajustes laterales
     if (left < 20) left = 20;
-    if (left + tooltipWidth > screenSize.width - 20)
+    if (left + tooltipWidth > screenSize.width - 20) {
       left = screenSize.width - tooltipWidth - 20;
+    }
 
     return Stack(
       children: [

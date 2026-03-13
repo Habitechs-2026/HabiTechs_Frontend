@@ -57,7 +57,7 @@ class _CreateAnnouncementScreenState
             const SizedBox(height: 24),
             if (state.hasError)
               Text("Error: ${state.error.toString()}",
-                  style: TextStyle(color: Colors.red)),
+                  style: const TextStyle(color: Colors.red)),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50)),

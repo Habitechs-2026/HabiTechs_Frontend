@@ -322,7 +322,7 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
           if (isClickable)
-            Icon(
+            const Icon(
               Iconsax.arrow_right_3,
               size: 16,
               color: kTeal,

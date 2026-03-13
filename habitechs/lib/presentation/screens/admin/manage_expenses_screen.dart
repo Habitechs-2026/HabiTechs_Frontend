@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habitechs/presentation/providers/admin_provider.dart';
-import 'package:habitechs/data/models/expense.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:lottie/lottie.dart';
-import 'package:habitechs/presentation/providers/finance_provider.dart';
 
 class ManageExpensesScreen extends ConsumerWidget {
   const ManageExpensesScreen({super.key});

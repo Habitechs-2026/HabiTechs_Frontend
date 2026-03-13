@@ -318,12 +318,14 @@ class _UserCard extends ConsumerWidget {
             Wrap(
               spacing: 6,
               children: [
-                if (isAdmin) _RoleBadge(text: "Admin", color: Colors.orange),
-                if (isGuard) _RoleBadge(text: "Guardia", color: Colors.blue),
+                if (isAdmin)
+                  const _RoleBadge(text: "Admin", color: Colors.orange),
+                if (isGuard)
+                  const _RoleBadge(text: "Guardia", color: Colors.blue),
                 if (!isAdmin && !isGuard)
-                  _RoleBadge(text: "Residente", color: Colors.green),
+                  const _RoleBadge(text: "Residente", color: Colors.green),
                 if (isSuspended)
-                  _RoleBadge(text: "SUSPENDIDO", color: Colors.red),
+                  const _RoleBadge(text: "SUSPENDIDO", color: Colors.red),
               ],
             )
           ],

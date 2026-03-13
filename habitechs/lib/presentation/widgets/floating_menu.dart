@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:habitechs/presentation/providers/auth_provider.dart';
-import 'package:habitechs/core/utils/tutorial_keys.dart';
 import 'package:habitechs/presentation/screens/home/home_screen.dart'
     hide kTeal, kOxfordBlue;
 import 'package:habitechs/presentation/screens/about/about_screen.dart';
 import 'package:habitechs/presentation/screens/privacy/privacy_policy_screen.dart';
 import 'package:habitechs/presentation/screens/location/share_location_screen.dart';
-import 'package:habitechs/presentation/screens/admin/manage_users_screen.dart'; // ✅ Nueva pantalla para navegar
+// ✅ Nueva pantalla para navegar
 import 'package:iconsax/iconsax.dart';
 
 const Color kTeal = Colors.teal;

@@ -281,9 +281,9 @@ class _CreateTicketDialogState extends State<_CreateTicketDialog> {
                         borderRadius: BorderRadius.circular(12),
                         child: Image.file(_selectedImage!, fit: BoxFit.cover),
                       )
-                    : Column(
+                    : const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.camera_alt, color: Colors.grey, size: 30),
                           SizedBox(height: 8),
                           Text("Adjuntar foto (Opcional)",
