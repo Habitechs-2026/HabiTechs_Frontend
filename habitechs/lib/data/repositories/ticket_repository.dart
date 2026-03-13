@@ -16,7 +16,9 @@ class TicketRepository {
       final List<dynamic> data = response.data;
       return data.map((json) => Ticket.fromJson(json)).toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Error al cargar tickets');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : data?.toString();
+      throw Exception(msg ?? 'Error al cargar tickets');
     }
   }
 
@@ -40,7 +42,9 @@ class TicketRepository {
 
       await _dio.post('/api/Tickets', data: formData);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Error al crear ticket');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : data?.toString();
+      throw Exception(msg ?? 'Error al crear ticket');
     }
   }
 
@@ -67,7 +71,9 @@ class TicketRepository {
         throw Exception('Error: El servidor respondió ${response.statusCode}');
       }
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Error al cerrar ticket');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : data?.toString();
+      throw Exception(msg ?? 'Error al cerrar ticket');
     }
   }
 }

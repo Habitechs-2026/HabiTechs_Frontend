@@ -2,8 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:habitechs/main.dart'
-    hide kTeal, kOxfordBlue; // Ocultamos para usar definiciones locales
+// Ocultamos para usar definiciones locales
 import 'package:habitechs/data/models/ticket.dart';
 import 'package:habitechs/data/repositories/ticket_repository.dart';
 import 'package:habitechs/presentation/widgets/top_toast.dart'; // Asegúrate de tener este widget o usar SnackBar normal

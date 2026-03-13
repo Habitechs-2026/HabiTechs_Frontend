@@ -247,6 +247,10 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
+              backgroundColor: const Color(0xFF008080),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.grey.shade300,
+              disabledForegroundColor: Colors.grey.shade500,
             ),
             onPressed: (selectedDay == null ||
                     _startTime == null ||
