@@ -52,6 +52,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             location == '/chatbot') {
           final role = await storage.readRole();
           if (role == 'Guardia') return '/guard/home';
+          if (role == 'Admin') return '/admin/home';
           return '/home';
         }
       }
