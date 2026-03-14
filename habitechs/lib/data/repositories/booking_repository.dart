@@ -7,14 +7,16 @@ class BookingRepository {
 
   BookingRepository(this._dio);
 
-  // ✅ CORRECCIÓN: Ruta ajustada a '/api/Booking' (Singular, coincide con C# Controller)
   Future<List<DateTime>> getBookedDates(String amenity) async {
     try {
+      final now = DateTime.now();
       final response = await _dio.get(
-        '/api/Booking/dates',
-        queryParameters: {'amenity': amenity},
+        '/api/Booking/availability',
+        queryParameters: {
+          'amenityName': amenity,
+          'month': '${now.year}-${now.month.toString().padLeft(2, '0')}-01',
+        },
       );
-
       final data = response.data as List<dynamic>;
       return data.map((e) => DateTime.parse(e.toString())).toList();
     } on DioException catch (e) {
@@ -30,12 +32,11 @@ class BookingRepository {
   }) async {
     try {
       await _dio.post(
-        '/api/Booking', // ✅ Ruta ajustada a singular
+        '/api/Booking',
         data: {
           'AmenityName': amenity,
-          'BookingDate': date.toIso8601String(),
-          'StartTime': startTime,
-          'EndTime': endTime,
+          'BookingDate':
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
         },
       );
     } on DioException catch (e) {
@@ -43,18 +44,14 @@ class BookingRepository {
     }
   }
 
-  // Manejo robusto de errores del Backend (.NET)
   Exception _handleError(DioException e) {
     String msg = 'Error de conexión';
     if (e.response != null && e.response?.data != null) {
       final data = e.response!.data;
-
-      // Intentamos extraer el mensaje limpio que manda el backend
       if (data is Map) {
         if (data['message'] != null) {
           msg = data['message'].toString();
         } else if (data['title'] != null) {
-          // A veces .NET manda el error en 'title' si es un 400 automático
           msg = data['title'].toString();
         } else if (data['errors'] != null) {
           msg = data['errors'].toString();
