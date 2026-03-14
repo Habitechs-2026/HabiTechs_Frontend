@@ -59,7 +59,7 @@ class AuthNotifier extends StateNotifier<AuthStatus> {
         final token = data['token'] as String;
         // Guardamos roles también localmente por si acaso
         final roles = (data['roles'] as List).cast<String>();
-
+        print('Roles recibidos: $roles');
         await _storage.saveToken(token);
         await _storage.saveRoles(roles);
 
